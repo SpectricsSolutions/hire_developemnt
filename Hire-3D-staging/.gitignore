@@ -1,0 +1,29 @@
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+.DS_Store
+Thumbs.db
+
+.env*
+!.env.test
+!.env.example
+
+.cursor/
+tmp/
+
+# Coverage
+coverage/
+.coverage
+htmlcov/
+
+# Terraform
+**/.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+crash.log
+crash.*.log

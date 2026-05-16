@@ -1,0 +1,38 @@
+#!/bin/sh
+set -e
+
+APP_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '^app/.*\.\(ts\|tsx\|js\|jsx\)$' || true)
+API_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '^api/.*\.py$' || true)
+TF_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.tf$' || true)
+
+if [ -z "$APP_FILES" ] && [ -z "$API_FILES" ] && [ -z "$TF_FILES" ]; then
+  echo "[pre-commit] No relevant files changed"
+  exit 0
+fi
+
+if [ -n "$APP_FILES" ]; then
+  echo "[pre-commit] formatting app files"
+  cd app
+  FILES=$(echo "$APP_FILES" | sed 's|^app/||')
+  pnpm eslint --fix $FILES
+  pnpm prettier --write $FILES
+  cd ..
+  git add $APP_FILES
+fi
+
+if [ -n "$API_FILES" ]; then
+  echo "[pre-commit] linting api files"
+  cd api
+  FILES=$(echo "$API_FILES" | sed 's|^api/||')
+  uv run ruff check --fix $FILES
+  uv run ruff format $FILES
+  cd ..
+  git add $API_FILES
+fi
+
+if [ -n "$TF_FILES" ]; then
+  echo "[pre-commit] formatting terraform files"
+  terraform fmt $TF_FILES
+  git add $TF_FILES
+fi
+
