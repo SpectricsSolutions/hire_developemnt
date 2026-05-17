@@ -24,12 +24,12 @@ async function login(req, res) {
   const result = await authService.login(req.body.email, req.body.password);
 
   if (result.requiresTwoFa) {
-    return success(res, { requires2fa: true, totpToken: result.totpToken });
+    return success(res, { requires2Fa: true, totpToken: result.totpToken });
   }
 
   setRefreshCookie(res, result.refreshToken);
   return success(res, {
-    requires2fa: false,
+    requires2Fa: false,
     accessToken: result.accessToken,
     tokenType: result.tokenType,
   });

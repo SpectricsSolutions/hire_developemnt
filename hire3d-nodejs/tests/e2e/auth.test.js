@@ -231,7 +231,7 @@ describe('TOTP lifecycle', () => {
       .send({ email: user.email, password: DEFAULT_PASSWORD });
 
     expect(loginRes.status).toBe(200);
-    expect(loginRes.body.data.requires2fa).toBe(true);
+    expect(loginRes.body.data.requires2Fa).toBe(true);
     expect(loginRes.body.data.totpToken).toBeTruthy();
   });
 
@@ -301,7 +301,7 @@ describe('TOTP lifecycle', () => {
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
       .send({ email: user.email, password: DEFAULT_PASSWORD });
-    expect(loginRes.body.data.requires2fa).toBe(false);
+    expect(loginRes.body.data.requires2Fa).toBe(false);
   });
 
   test('DELETE /api/v1/auth/totp returns 404 when not enrolled', async () => {
