@@ -44,8 +44,7 @@ export default function Phase1WorkspacePage() {
   const [loading, setLoading] = useState(true)
   const [activeControlId, setActiveControlId] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-
-  if (!can('assessments:read')) return <Navigate to={ROUTES.HOME} replace />
+  const canRead = can('assessments:read')
 
   // ── Load workspace ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -167,6 +166,8 @@ export default function Phase1WorkspacePage() {
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
+  if (!canRead) return <Navigate to={ROUTES.HOME} replace />
+
   const progress = workspace ? recalcProgress(workspace.controls) : null
 
   return (

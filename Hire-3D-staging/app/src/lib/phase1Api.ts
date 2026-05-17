@@ -48,10 +48,13 @@ export type P1Workspace = {
 
 // ── API calls ─────────────────────────────────────────────────────────────────
 
+const BEARER = [{ scheme: 'bearer', type: 'http' }] as const
+
 export async function getPhase1Workspace(engagementId: string): Promise<P1Workspace> {
   const res = await client.get<{ data: P1Workspace }>({
     url: `/api/v1/phase1/${engagementId}`,
     responseType: 'json',
+    security: BEARER,
   })
   return unwrap<{ data: P1Workspace }>(res).data
 }
@@ -64,6 +67,7 @@ export async function updateP1Evidence(
     url: `/api/v1/phase1-evidence/${itemId}`,
     body: data,
     responseType: 'json',
+    security: BEARER,
   })
   return unwrap<{ data: P1Evidence }>(res).data
 }
@@ -75,6 +79,7 @@ export async function uploadP1File(itemId: string, file: File): Promise<P1Eviden
     url: `/api/v1/phase1-evidence/${itemId}/upload`,
     body: form,
     responseType: 'json',
+    security: BEARER,
     headers: { 'Content-Type': undefined }, // let browser set multipart boundary
   })
   return unwrap<{ data: P1Evidence }>(res).data
