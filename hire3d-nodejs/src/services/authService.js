@@ -12,12 +12,16 @@ const settings = require('../config/settings');
 const { Op } = require('sequelize');
 
 async function getPermissionsForUser(userId) {
+  const user = await User.findByPk(userId, { attributes: ['roleId'] });
+  if (!user || !user.roleId) return [];
+
   const perms = await Permission.findAll({
     include: [
       {
         model: Role,
         as: 'Roles',
-        include: [{ model: User, where: { id: userId }, attributes: [] }],
+        where: { id: user.roleId },
+        required: true,
         attributes: [],
         through: { attributes: [] },
       },

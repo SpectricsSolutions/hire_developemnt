@@ -24,7 +24,50 @@ const engagementBaseSchema = {
   invoiceRaisedAt: dateStr,
 };
 
-const createEngagementSchema = Joi.object(engagementBaseSchema);
-const updateEngagementSchema = Joi.object(engagementBaseSchema);
+const createEngagementSchema = Joi.object(engagementBaseSchema).custom((value, helpers) => {
+  const { engagementDate, auditDate, reportIssuedDate, nextReviewDue } = value;
+
+  if (auditDate && auditDate < engagementDate) {
+    return helpers.error('any.invalid', { message: 'Audit date must be on or after the engagement date.' });
+  }
+
+  if (reportIssuedDate) {
+    const boundary = auditDate || engagementDate;
+    if (reportIssuedDate < boundary) {
+      return helpers.error('any.invalid', {
+        message: 'Report issued date must be on or after the audit date (or engagement date if no audit date is set).',
+      });
+    }
+  }
+
+  if (nextReviewDue && nextReviewDue < engagementDate) {
+    return helpers.error('any.invalid', { message: 'Next review due must be on or after the engagement date.' });
+  }
+
+  return value;
+}).messages({ 'any.invalid': '{{#message}}' });
+
+const updateEngagementSchema = Joi.object(engagementBaseSchema).custom((value, helpers) => {
+  const { engagementDate, auditDate, reportIssuedDate, nextReviewDue } = value;
+
+  if (auditDate && auditDate < engagementDate) {
+    return helpers.error('any.invalid', { message: 'Audit date must be on or after the engagement date.' });
+  }
+
+  if (reportIssuedDate) {
+    const boundary = auditDate || engagementDate;
+    if (reportIssuedDate < boundary) {
+      return helpers.error('any.invalid', {
+        message: 'Report issued date must be on or after the audit date (or engagement date if no audit date is set).',
+      });
+    }
+  }
+
+  if (nextReviewDue && nextReviewDue < engagementDate) {
+    return helpers.error('any.invalid', { message: 'Next review due must be on or after the engagement date.' });
+  }
+
+  return value;
+}).messages({ 'any.invalid': '{{#message}}' });
 
 module.exports = { createEngagementSchema, updateEngagementSchema };

@@ -7,12 +7,19 @@ const { User, Role, Permission, RolePermission } = require('../models');
 const { Op } = require('sequelize');
 
 async function getPermissionsForUser(userId) {
+  // Look up the user's roleId directly, then fetch that role's permissions.
+  // A nested include without required:true returns a LEFT JOIN which ignores
+  // the where clause at the Permission level and returns all permissions.
+  const user = await User.findByPk(userId, { attributes: ['roleId'] });
+  if (!user || !user.roleId) return [];
+
   const rows = await Permission.findAll({
     include: [
       {
         model: Role,
         as: 'Roles',
-        include: [{ model: User, where: { id: userId }, attributes: [] }],
+        where: { id: user.roleId },
+        required: true,
         attributes: [],
         through: { attributes: [] },
       },
