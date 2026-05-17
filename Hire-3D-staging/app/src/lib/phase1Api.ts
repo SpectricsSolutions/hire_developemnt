@@ -8,7 +8,9 @@ export type P1EvidenceStatus = 'not_provided' | 'seen' | 'partial' | 'requested'
 export type P1Evidence = {
   id: string
   status: P1EvidenceStatus
-  notes: string | null
+  notes: string | null           // verbal evidence / session notes
+  documentNotes: string | null   // documents produced (US-021)
+  documentLink: string | null    // URL link to document (US-021)
   fileUrl: string | null
   fileName: string | null
 }
@@ -56,7 +58,7 @@ export async function getPhase1Workspace(engagementId: string): Promise<P1Worksp
 
 export async function updateP1Evidence(
   itemId: string,
-  data: { status?: P1EvidenceStatus; notes?: string | null }
+  data: { status?: P1EvidenceStatus; notes?: string | null; documentNotes?: string | null; documentLink?: string | null }
 ): Promise<P1Evidence> {
   const res = await client.put<{ data: P1Evidence }>({
     url: `/api/v1/phase1-evidence/${itemId}`,

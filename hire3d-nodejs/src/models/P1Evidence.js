@@ -15,7 +15,9 @@ const P1Evidence = sequelize.define(
       allowNull: false,
       defaultValue: 'not_provided',
     },
-    notes: { type: DataTypes.TEXT, allowNull: true },
+    notes: { type: DataTypes.TEXT, allowNull: true },           // verbal evidence / session notes
+    documentNotes: { type: DataTypes.TEXT, allowNull: true },   // documents produced (US-021)
+    documentLink: { type: DataTypes.STRING(2048), allowNull: true }, // URL link to document (US-021)
     fileUrl: { type: DataTypes.STRING(500), allowNull: true },
     fileName: { type: DataTypes.STRING(255), allowNull: true },
   },

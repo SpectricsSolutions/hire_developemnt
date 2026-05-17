@@ -58,7 +58,7 @@ async function getWorkspace(engagementId) {
       ifPartial: c.ifPartial,
       sortOrder: c.sortOrder,
       evidence: ev
-        ? { id: ev.id, status: ev.status, notes: ev.notes, fileUrl: ev.fileUrl, fileName: ev.fileName }
+        ? { id: ev.id, status: ev.status, notes: ev.notes, documentNotes: ev.documentNotes, documentLink: ev.documentLink, fileUrl: ev.fileUrl, fileName: ev.fileName }
         : null,
     };
   });
@@ -80,6 +80,8 @@ async function updateEvidence(itemId, data) {
   const patch = {};
   if (data.status !== undefined) patch.status = data.status;
   if (data.notes !== undefined) patch.notes = data.notes;
+  if (data.documentNotes !== undefined) patch.documentNotes = data.documentNotes;
+  if (data.documentLink !== undefined) patch.documentLink = data.documentLink;
   await item.update(patch);
 
   await logUpdate({ type: 'p1_evidence', id: itemId }, before, item.toJSON());

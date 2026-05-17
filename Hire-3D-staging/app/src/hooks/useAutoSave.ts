@@ -1,29 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { type P1EvidenceStatus, updateP1Evidence } from '@/lib/phase1Api'
 
-type SavePayload = { status?: P1EvidenceStatus; notes?: string | null }
+type SavePayload = {
+  status?: P1EvidenceStatus
+  notes?: string | null
+  documentNotes?: string | null
+  documentLink?: string | null
+}
+
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 /**
  * Auto-save queue for Phase 1 evidence fields.
  *
- * Rules (confirmed spec):
- *   - Text fields (notes): debounce 1 second before saving
+ * Rules (US-023):
+ *   - Text fields (notes, documentNotes, documentLink): debounce 1 second
  *   - Dropdown fields (status): save immediately
  *
- * Returns hasPendingSaves so the navigation guard can block unload.
+ * Exposes saveStatus: 'idle' | 'saving' | 'saved' | 'error' for the
+ * header status indicator (US-023).
  */
 export function useAutoSave(onSaved?: (itemId: string, data: SavePayload) => void) {
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const [hasPendingSaves, setHasPendingSaves] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const pendingCount = useRef(0)
 
   const inc = () => {
     pendingCount.current++
     setHasPendingSaves(true)
+    setSaveStatus('saving')
   }
-  const dec = () => {
+
+  const dec = (success: boolean) => {
     pendingCount.current = Math.max(0, pendingCount.current - 1)
-    if (pendingCount.current === 0) setHasPendingSaves(false)
+    if (pendingCount.current === 0) {
+      setHasPendingSaves(false)
+      setSaveStatus(success ? 'saved' : 'error')
+    }
   }
 
   const flush = useCallback(
@@ -31,10 +45,9 @@ export function useAutoSave(onSaved?: (itemId: string, data: SavePayload) => voi
       try {
         await updateP1Evidence(itemId, payload)
         onSaved?.(itemId, payload)
+        dec(true)
       } catch {
-        // Silently ignore — the UI shows dirty state; user can retry
-      } finally {
-        dec()
+        dec(false)
       }
     },
     [onSaved],
@@ -46,7 +59,7 @@ export function useAutoSave(onSaved?: (itemId: string, data: SavePayload) => voi
       const existing = timers.current.get(itemId)
       if (existing) {
         clearTimeout(existing)
-        dec()
+        pendingCount.current = Math.max(0, pendingCount.current - 1)
       }
       inc()
       const t = setTimeout(() => {
@@ -61,12 +74,11 @@ export function useAutoSave(onSaved?: (itemId: string, data: SavePayload) => voi
   /** Save a dropdown change immediately (no debounce). */
   const saveImmediate = useCallback(
     (itemId: string, payload: SavePayload) => {
-      // Cancel any pending text save for this item so we don't double-save
       const existing = timers.current.get(itemId)
       if (existing) {
         clearTimeout(existing)
         timers.current.delete(itemId)
-        dec()
+        pendingCount.current = Math.max(0, pendingCount.current - 1)
       }
       inc()
       flush(itemId, payload)
@@ -74,12 +86,9 @@ export function useAutoSave(onSaved?: (itemId: string, data: SavePayload) => voi
     [flush],
   )
 
-  // Flush all pending timers on unmount
   useEffect(() => {
-    return () => {
-      timers.current.forEach((t) => clearTimeout(t))
-    }
+    return () => { timers.current.forEach((t) => clearTimeout(t)) }
   }, [])
 
-  return { queueText, saveImmediate, hasPendingSaves }
+  return { queueText, saveImmediate, hasPendingSaves, saveStatus }
 }

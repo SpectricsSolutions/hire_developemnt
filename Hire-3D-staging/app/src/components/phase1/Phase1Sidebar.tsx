@@ -5,7 +5,7 @@ const STATUS_ICON = {
   seen:         <CheckCircle2 size={14} className="text-green-500 shrink-0" />,
   partial:      <Clock size={14} className="text-amber-500 shrink-0" />,
   not_provided: <Circle size={14} className="text-slate-300 shrink-0" />,
-  requested:    <AlertCircle size={14} className="text-red-500 shrink-0" />,
+  requested:    <AlertCircle size={14} className="text-blue-500 shrink-0" />,
 }
 
 export function Phase1Sidebar({

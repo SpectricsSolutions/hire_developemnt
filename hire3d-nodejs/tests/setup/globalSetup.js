@@ -97,21 +97,10 @@ async function globalSetup() {
     }
     await RolePermission.bulkCreate(rpRows, { ignoreDuplicates: true });
 
-    // Seed minimal control templates so Phase 1 tests have controls to work with.
-    // One set per product — enough for all test scenarios.
-    const { ControlTemplate } = require('../../src/models');
-    const templates = [
-      // THE_CHECK (no domain)
-      { id: randomUUID(), product: 'THE_CHECK', domain: null, code: 'TC1', title: 'Employment Contracts', whatTesting: 'Written contracts', whyMatters: 'Legal', primaryQuestion: 'Do all employees have written contracts?', evidencePrompts: [], lookingFor: [], ifPartial: [], sortOrder: 1, isActive: true, version: 1, meta: {}, createdAt: now, updatedAt: now },
-      { id: randomUUID(), product: 'THE_CHECK', domain: null, code: 'TC2', title: 'Right to Work', whatTesting: 'RTW checks', whyMatters: 'Compliance', primaryQuestion: 'Are right to work checks documented?', evidencePrompts: [], lookingFor: [], ifPartial: [], sortOrder: 2, isActive: true, version: 1, meta: {}, createdAt: now, updatedAt: now },
-      { id: randomUUID(), product: 'THE_CHECK', domain: null, code: 'TC3', title: 'Payroll Records', whatTesting: 'Payslips', whyMatters: 'HMRC', primaryQuestion: 'Are payroll records accurate?', evidencePrompts: [], lookingFor: [], ifPartial: [], sortOrder: 3, isActive: true, version: 1, meta: {}, createdAt: now, updatedAt: now },
-      // HIRE_3D_CORE (domain A)
-      { id: randomUUID(), product: 'HIRE_3D_CORE', domain: 'A', code: 'A1', title: 'Contract Enforceability', whatTesting: 'Contracts', whyMatters: 'Legal', primaryQuestion: 'Are contracts enforceable?', evidencePrompts: [], lookingFor: [], ifPartial: [], sortOrder: 1, isActive: true, version: 1, meta: {}, createdAt: now, updatedAt: now },
-      { id: randomUUID(), product: 'HIRE_3D_CORE', domain: 'B', code: 'B1', title: 'HR Policy', whatTesting: 'Policies', whyMatters: 'Governance', primaryQuestion: 'Are HR policies documented?', evidencePrompts: [], lookingFor: [], ifPartial: [], sortOrder: 2, isActive: true, version: 1, meta: {}, createdAt: now, updatedAt: now },
-      // HIRE_3D_ENHANCED (domain A)
-      { id: randomUUID(), product: 'HIRE_3D_ENHANCED', domain: 'A', code: 'A1', title: 'Enhanced Contracts', whatTesting: 'Contracts', whyMatters: 'Legal', primaryQuestion: 'Are enhanced contracts in place?', evidencePrompts: [], lookingFor: [], ifPartial: [], sortOrder: 1, isActive: true, version: 1, meta: {}, createdAt: now, updatedAt: now },
-    ];
-    await ControlTemplate.bulkCreate(templates, { ignoreDuplicates: true });
+    // Seed the real control templates from the markdown sources (10 + 25 + 34 = 69).
+    // This uses the same parser as the production seeder so tests run against real data.
+    const controlSeeder = require('../../seeders/20240101000006-control-templates');
+    await controlSeeder.up(sequelize.getQueryInterface());
   } finally {
     await sequelize.close();
   }
