@@ -17,8 +17,6 @@ const sequelize = new Sequelize(settings.DB_NAME, settings.DB_USERNAME, settings
   define: {
     underscored: true,
     timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
   },
 });
 

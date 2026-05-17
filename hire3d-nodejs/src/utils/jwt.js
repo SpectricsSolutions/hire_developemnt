@@ -27,7 +27,7 @@ function issueAccessToken(user, { totpEnabled = false, permissions = [] } = {}) 
     name: user.name,
     role: user.Role ? user.Role.name : null,
     permissions,
-    totpEnabled,
+    totp_enabled: totpEnabled,
   });
 }
 

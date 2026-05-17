@@ -43,11 +43,18 @@ async function logDelete(ref, before) {
 
 async function listLogs(query) {
   const where = {};
-  if (query.action) where.action = query.action;
-  if (query.resourceType) where.resourceType = query.resourceType;
-  if (query.actorId) where.actorId = query.actorId;
-  if (query.before) where.createdAt = { ...(where.createdAt || {}), [Op.lt]: query.before };
-  if (query.after) where.createdAt = { ...(where.createdAt || {}), [Op.gte]: query.after };
+  // Support both camelCase and snake_case keys (SDK sends snake_case from FastAPI spec)
+  const action = query.action;
+  const resourceType = query.resourceType || query.resource_type;
+  const actorId = query.actorId || query.actor_id;
+  const before = query.before;
+  const after = query.after;
+
+  if (action) where.action = action;
+  if (resourceType) where.resourceType = resourceType;
+  if (actorId) where.actorId = actorId;
+  if (before) where.createdAt = { ...(where.createdAt || {}), [Op.lt]: before };
+  if (after) where.createdAt = { ...(where.createdAt || {}), [Op.gte]: after };
 
   const { count, rows } = await AuditLog.findAndCountAll({
     where,

@@ -16,46 +16,46 @@ const Assessment = require('./Assessment');
 const AssessmentGateCheck = require('./AssessmentGateCheck');
 
 // User <-> Role
-User.belongsTo(Role, { foreignKey: 'role_id', as: 'Role' });
-Role.hasMany(User, { foreignKey: 'role_id' });
+User.belongsTo(Role, { foreignKey: 'roleId', as: 'Role' });
+Role.hasMany(User, { foreignKey: 'roleId' });
 
 // Role <-> Permission (many-to-many through RolePermission)
 Role.belongsToMany(Permission, {
   through: RolePermission,
-  foreignKey: 'role_id',
-  otherKey: 'permission_id',
+  foreignKey: 'roleId',
+  otherKey: 'permissionId',
   as: 'Permissions',
 });
 Permission.belongsToMany(Role, {
   through: RolePermission,
-  foreignKey: 'permission_id',
-  otherKey: 'role_id',
+  foreignKey: 'permissionId',
+  otherKey: 'roleId',
   as: 'Roles',
 });
 
 // RefreshToken -> User
-RefreshToken.belongsTo(User, { foreignKey: 'user_id' });
-User.hasMany(RefreshToken, { foreignKey: 'user_id' });
+RefreshToken.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(RefreshToken, { foreignKey: 'userId' });
 
 // UserTOTP -> User
-UserTOTP.belongsTo(User, { foreignKey: 'user_id' });
-User.hasOne(UserTOTP, { foreignKey: 'user_id' });
+UserTOTP.belongsTo(User, { foreignKey: 'userId' });
+User.hasOne(UserTOTP, { foreignKey: 'userId' });
 
 // Engagement -> Client
-Engagement.belongsTo(Client, { foreignKey: 'client_id' });
-Client.hasMany(Engagement, { foreignKey: 'client_id' });
+Engagement.belongsTo(Client, { foreignKey: 'clientId' });
+Client.hasMany(Engagement, { foreignKey: 'clientId' });
 
 // CalibrationAnchor -> ControlTemplate
-CalibrationAnchor.belongsTo(ControlTemplate, { foreignKey: 'control_template_id', as: 'ControlTemplate' });
-ControlTemplate.hasMany(CalibrationAnchor, { foreignKey: 'control_template_id', as: 'CalibrationAnchors' });
+CalibrationAnchor.belongsTo(ControlTemplate, { foreignKey: 'controlTemplateId', as: 'ControlTemplate' });
+ControlTemplate.hasMany(CalibrationAnchor, { foreignKey: 'controlTemplateId', as: 'CalibrationAnchors' });
 
 // Assessment -> Engagement
-Assessment.belongsTo(Engagement, { foreignKey: 'engagement_id' });
-Engagement.hasOne(Assessment, { foreignKey: 'engagement_id' });
+Assessment.belongsTo(Engagement, { foreignKey: 'engagementId' });
+Engagement.hasOne(Assessment, { foreignKey: 'engagementId' });
 
 // AssessmentGateCheck -> Engagement/Assessment
-AssessmentGateCheck.belongsTo(Engagement, { foreignKey: 'engagement_id' });
-AssessmentGateCheck.belongsTo(Assessment, { foreignKey: 'assessment_id' });
+AssessmentGateCheck.belongsTo(Engagement, { foreignKey: 'engagementId' });
+AssessmentGateCheck.belongsTo(Assessment, { foreignKey: 'assessmentId' });
 
 module.exports = {
   sequelize,

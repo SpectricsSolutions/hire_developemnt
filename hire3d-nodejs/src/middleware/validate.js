@@ -20,7 +20,12 @@ function validate(schema, source = 'body') {
       return next(new ValidationError('Validation error.', errors));
     }
 
-    req[source] = value;
+    // Express 5 makes req.query a read-only getter — store validated query separately
+    if (source === 'query') {
+      req.validatedQuery = value;
+    } else {
+      req[source] = value;
+    }
     next();
   };
 }
