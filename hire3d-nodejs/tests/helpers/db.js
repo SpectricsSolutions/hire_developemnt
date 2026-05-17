@@ -12,6 +12,7 @@ async function cleanTables() {
       TRUNCATE TABLE
         assessment_gate_checks,
         assessments,
+        evidence_items,
         refresh_tokens,
         totp_credentials,
         audit_logs,
