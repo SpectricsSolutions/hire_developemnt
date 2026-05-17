@@ -2,6 +2,7 @@
 
 require('dotenv').config();
 
+const path = require('path');
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
@@ -70,6 +71,9 @@ if (settings.isDevelopment) {
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   app.get('/openapi.json', (req, res) => res.json(swaggerSpec));
 }
+
+// Serve uploaded files (Phase 1 evidence attachments)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));

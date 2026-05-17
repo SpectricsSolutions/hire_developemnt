@@ -12,6 +12,7 @@ const controlsRoutes = require('./controls');
 const assessmentsRoutes = require('./assessments');
 const auditRoutes = require('./audit');
 const evidenceRoutes = require('./evidence');
+const phase1Routes = require('./phase1');
 
 router.use('/auth', authRoutes);
 router.use('/users', usersRoutes);
@@ -25,5 +26,8 @@ router.use('/audit-logs', auditRoutes);
 router.use('/engagements/:engagementId/evidence-items', evidenceRoutes);
 // Evidence: item-level updates (PATCH /api/v1/evidence-items/:itemId)
 router.use('/evidence-items', evidenceRoutes);
+// Phase 1 workspace + evidence CRUD
+router.use('/phase1', phase1Routes);
+router.use('/phase1-evidence', phase1Routes);
 
 module.exports = router;

@@ -1054,14 +1054,22 @@ function EngagementCard({
       </div>
       {canViewAudit && (
         <>
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex justify-end gap-2">
+            {/* T3.04 — Resume Phase 1 button */}
+            {e.auditStatus === AuditStatus.SCHEDULED && (
+              <Button variant="default" size="sm" asChild>
+                <Link to={ROUTES.PHASE1_WORKSPACE(e.id as string)}>
+                  Resume Phase 1
+                </Link>
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setAuditOpen(true)}
             >
               <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-              Audit & Gates
+              Audit &amp; Gates
             </Button>
           </div>
           <AuditPanel

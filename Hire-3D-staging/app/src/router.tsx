@@ -23,6 +23,7 @@ const loadAuditLogsSettingsPage = () => import('./pages/settings/audit-logs')
 const loadAdminControlsPage = () => import('./pages/admin/controls/index')
 const loadAdminControlDetailPage = () =>
   import('./pages/admin/controls/$templateId')
+const loadPhase1WorkspacePage = () => import('./pages/engagements/phase1')
 
 const router = createBrowserRouter([
   {
@@ -70,6 +71,11 @@ const router = createBrowserRouter([
         handle: { title: 'Control Template' },
         lazy: () =>
           loadAdminControlDetailPage().then(m => ({ Component: m.default }))
+      },
+      {
+        path: 'engagements/:engagementId/phase1',
+        handle: { title: 'Phase 1 Workspace' },
+        lazy: () => loadPhase1WorkspacePage().then(m => ({ Component: m.default })),
       },
       {
         path: ROUTES.SETTINGS,

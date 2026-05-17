@@ -1,6 +1,6 @@
 'use strict';
 
-const { Assessment, AssessmentGateCheck, Engagement } = require('../models');
+const { Assessment, AssessmentGateCheck, Engagement, ControlTemplate, P1Evidence } = require('../models');
 const { NotFoundError, ConflictError, GateBlockedError } = require('../utils/errors');
 const { logCreate, logUpdate } = require('./auditService');
 const { runGates, START_GATES, CLOSE_PHASE_1_GATES, SUBMIT_PHASE_2_GATES, REPORT_GATES } = require('../utils/gates');
@@ -85,6 +85,19 @@ async function startAssessment(engagementId, actorId) {
   });
 
   await Engagement.update({ auditStatus: 'SCHEDULED' }, { where: { id: engagementId } });
+
+  // T3.01: Auto-create one p1_evidence row per active control for this product.
+  // ignoreDuplicates protects against re-starting after a cancelled assessment.
+  const controls = await ControlTemplate.findAll({
+    where: { product: engagement.product, isActive: true },
+    attributes: ['id'],
+  });
+  if (controls.length > 0) {
+    await P1Evidence.bulkCreate(
+      controls.map((c) => ({ engagementId, controlId: c.id, status: 'not_provided' })),
+      { ignoreDuplicates: true },
+    );
+  }
 
   await logCreate(
     { type: 'assessment', id: assessment.id },

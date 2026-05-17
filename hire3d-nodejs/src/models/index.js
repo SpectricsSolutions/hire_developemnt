@@ -15,6 +15,7 @@ const CalibrationAnchor = require('./CalibrationAnchor');
 const Assessment = require('./Assessment');
 const AssessmentGateCheck = require('./AssessmentGateCheck');
 const EvidenceItem = require('./EvidenceItem');
+const P1Evidence = require('./P1Evidence');
 
 // User <-> Role
 User.belongsTo(Role, { foreignKey: 'roleId', as: 'Role' });
@@ -64,6 +65,12 @@ EvidenceItem.belongsTo(Engagement, { foreignKey: 'engagementId' });
 Engagement.hasMany(EvidenceItem, { foreignKey: 'engagementId' });
 ControlTemplate.hasMany(EvidenceItem, { foreignKey: 'controlId' });
 
+// P1Evidence -> ControlTemplate, Engagement (one row per control per engagement)
+P1Evidence.belongsTo(ControlTemplate, { foreignKey: 'controlId', as: 'control' });
+P1Evidence.belongsTo(Engagement, { foreignKey: 'engagementId' });
+Engagement.hasMany(P1Evidence, { foreignKey: 'engagementId' });
+ControlTemplate.hasMany(P1Evidence, { foreignKey: 'controlId' });
+
 module.exports = {
   sequelize,
   User,
@@ -80,4 +87,5 @@ module.exports = {
   Assessment,
   AssessmentGateCheck,
   EvidenceItem,
+  P1Evidence,
 };

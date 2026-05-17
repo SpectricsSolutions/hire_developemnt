@@ -230,6 +230,21 @@ export const GateLabel: Record<GateName, string> = {
   ADMIN_REPORT_REVIEW: 'Admin report review'
 }
 
+export const P1EvidenceStatus = {
+  NOT_PROVIDED: 'not_provided',
+  SEEN: 'seen',
+  PARTIAL: 'partial',
+  REQUESTED: 'requested',
+} as const
+export type P1EvidenceStatus = (typeof P1EvidenceStatus)[keyof typeof P1EvidenceStatus]
+
+export const P1EvidenceStatusLabel: Record<P1EvidenceStatus, string> = {
+  not_provided: 'Not Provided',
+  seen: 'Seen',
+  partial: 'Partial',
+  requested: 'Requested',
+}
+
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
@@ -245,5 +260,6 @@ export const ROUTES = {
   CLIENTS: '/clients',
   CLIENT_DETAIL: (clientId: string) => `/clients/${clientId}`,
   ADMIN_CONTROLS: '/admin/controls',
-  ADMIN_CONTROL_DETAIL: (templateId: string) => `/admin/controls/${templateId}`
+  ADMIN_CONTROL_DETAIL: (templateId: string) => `/admin/controls/${templateId}`,
+  PHASE1_WORKSPACE: (engagementId: string) => `/engagements/${engagementId}/phase1`,
 } as const
