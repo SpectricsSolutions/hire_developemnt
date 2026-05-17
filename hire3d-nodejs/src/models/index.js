@@ -46,8 +46,8 @@ Engagement.belongsTo(Client, { foreignKey: 'clientId' });
 Client.hasMany(Engagement, { foreignKey: 'clientId' });
 
 // CalibrationAnchor -> ControlTemplate
-CalibrationAnchor.belongsTo(ControlTemplate, { foreignKey: 'controlTemplateId', as: 'ControlTemplate' });
-ControlTemplate.hasMany(CalibrationAnchor, { foreignKey: 'controlTemplateId', as: 'CalibrationAnchors' });
+CalibrationAnchor.belongsTo(ControlTemplate, { foreignKey: 'controlTemplateId', as: 'controlTemplate' });
+ControlTemplate.hasMany(CalibrationAnchor, { foreignKey: 'controlTemplateId', as: 'calibrationAnchors' });
 
 // Assessment -> Engagement
 Assessment.belongsTo(Engagement, { foreignKey: 'engagementId' });

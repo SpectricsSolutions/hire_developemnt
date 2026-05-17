@@ -13,7 +13,7 @@ async function listTemplates({ product, domain, activeOnly }) {
 
   return ControlTemplate.findAll({
     where,
-    include: [{ model: CalibrationAnchor, as: 'CalibrationAnchors' }],
+    include: [{ model: CalibrationAnchor, as: 'calibrationAnchors' }],
     order: [
       ['product', 'ASC'],
       ['sort_order', 'ASC'],
@@ -24,7 +24,7 @@ async function listTemplates({ product, domain, activeOnly }) {
 
 async function getTemplate(templateId) {
   const template = await ControlTemplate.findByPk(templateId, {
-    include: [{ model: CalibrationAnchor, as: 'CalibrationAnchors' }],
+    include: [{ model: CalibrationAnchor, as: 'calibrationAnchors' }],
   });
   if (!template) throw new NotFoundError();
   return template;
@@ -50,7 +50,7 @@ async function createTemplate(data) {
     await t.commit();
 
     const full = await ControlTemplate.findByPk(template.id, {
-      include: [{ model: CalibrationAnchor, as: 'CalibrationAnchors' }],
+      include: [{ model: CalibrationAnchor, as: 'calibrationAnchors' }],
     });
 
     await logCreate({ type: 'control_template', id: template.id }, data);
@@ -93,7 +93,7 @@ async function updateTemplate(templateId, data) {
   }
 
   const updated = await ControlTemplate.findByPk(templateId, {
-    include: [{ model: CalibrationAnchor, as: 'CalibrationAnchors' }],
+    include: [{ model: CalibrationAnchor, as: 'calibrationAnchors' }],
   });
 
   await logUpdate({ type: 'control_template', id: templateId }, before, data);
