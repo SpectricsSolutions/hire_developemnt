@@ -137,7 +137,7 @@ export function ControlCard({
           defaultValue={evidence?.notes ?? ''}
           onChange={(e) => onNotesChange(e.target.value)}
           rows={3}
-          className="text-sm resize-none"
+          className="text-sm resize-none text-slate-900"
         />
       </div>
 
@@ -149,7 +149,7 @@ export function ControlCard({
           defaultValue={evidence?.documentNotes ?? ''}
           onChange={(e) => onDocumentNotesChange(e.target.value)}
           rows={2}
-          className="text-sm resize-none"
+          className="text-sm resize-none text-slate-900"
         />
       </div>
 
