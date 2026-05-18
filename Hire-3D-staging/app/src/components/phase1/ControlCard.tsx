@@ -1,10 +1,4 @@
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { Textarea } from '@/components/ui/textarea'
 import type { P1Control, P1EvidenceStatus } from '@/lib/phase1Api'
 import { ChevronDown, ChevronUp, Link2, Paperclip } from 'lucide-react'
@@ -71,31 +65,17 @@ export function ControlCard({
         </div>
 
         {/* US-021: colour-coded status dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild data-testid="status-select">
-            <button
-              type="button"
-              className={`flex items-center gap-1.5 text-xs font-medium rounded px-2.5 py-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${statusMeta.colour}`}
-              aria-label="Evidence status"
-            >
-              {statusMeta.label}
-              <ChevronDown size={12} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[140px]">
-            {STATUS_OPTIONS.map((opt) => (
-              <DropdownMenuItem
-                key={opt.value}
-                onSelect={() => onStatusChange(opt.value)}
-                className="cursor-pointer"
-              >
-                <span className={`text-xs font-medium rounded px-2 py-0.5 ${opt.colour}`}>
-                  {opt.label}
-                </span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <select
+          value={currentStatus}
+          onChange={(e) => onStatusChange(e.target.value as P1EvidenceStatus)}
+          className={`text-xs font-medium rounded px-2 py-1 border-0 cursor-pointer focus:ring-2 focus:ring-blue-500 ${statusMeta.colour}`}
+          aria-label="Evidence status"
+          data-testid="status-select"
+        >
+          {STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
       </div>
 
       {/* US-020: title */}
