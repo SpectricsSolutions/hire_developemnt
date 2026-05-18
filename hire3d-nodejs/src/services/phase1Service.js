@@ -41,7 +41,16 @@ async function getWorkspace(engagementId) {
     order: [['domain', 'ASC NULLS FIRST'], ['sort_order', 'ASC'], ['code', 'ASC']],
   });
 
-  const evidenceRows = await P1Evidence.findAll({ where: { engagementId } });
+  let evidenceRows = await P1Evidence.findAll({ where: { engagementId } });
+  const existingControlIds = new Set(evidenceRows.map((e) => e.controlId));
+  const missing = controls.filter((c) => !existingControlIds.has(c.id));
+  if (missing.length > 0) {
+    await P1Evidence.bulkCreate(
+      missing.map((c) => ({ engagementId, controlId: c.id, status: 'not_provided' })),
+      { ignoreDuplicates: true },
+    );
+    evidenceRows = await P1Evidence.findAll({ where: { engagementId } });
+  }
   const evidenceByControlId = Object.fromEntries(evidenceRows.map((e) => [e.controlId, e]));
 
   const controlsWithEvidence = controls.map((c) => {
