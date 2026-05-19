@@ -15,13 +15,22 @@ import {
   useSidebar
 } from '@/components/ui/sidebar'
 import {
-  CreditCardIcon,
   Logout01Icon,
   MoreVerticalCircle01Icon,
-  Notification03Icon,
-  UserCircle02Icon
 } from '@hugeicons/core-free-icons'
 import { HugeiconsIcon } from '@hugeicons/react'
+
+const ROLE_LABEL: Record<string, string> = {
+  ADMIN: 'Admin',
+  OPERATOR: 'Operator',
+  VIEWER: 'Viewer'
+}
+
+const ROLE_CLASS: Record<string, string> = {
+  ADMIN: 'bg-violet-100 text-violet-700',
+  OPERATOR: 'bg-blue-100 text-blue-700',
+  VIEWER: 'bg-zinc-100 text-zinc-600'
+}
 
 export function NavUser({
   user,
@@ -31,10 +40,14 @@ export function NavUser({
     name: string
     email: string
     avatar: string
+    role?: string | null
   }
   onLogout?: () => void
 }) {
   const { isMobile } = useSidebar()
+  const roleCls = user.role ? (ROLE_CLASS[user.role] ?? 'bg-zinc-100 text-zinc-600') : null
+  const roleLabel = user.role ? (ROLE_LABEL[user.role] ?? user.role) : null
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -49,7 +62,14 @@ export function NavUser({
               <AvatarFallback className="rounded-lg">CN</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{user.name}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="truncate font-medium">{user.name}</span>
+                {roleCls && roleLabel && (
+                  <span className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold ${roleCls}`}>
+                    {roleLabel}
+                  </span>
+                )}
+              </div>
               <span className="text-foreground/70 truncate text-xs">
                 {user.email}
               </span>
@@ -74,28 +94,20 @@ export function NavUser({
                     <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate font-medium">{user.name}</span>
+                      {roleCls && roleLabel && (
+                        <span className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold ${roleCls}`}>
+                          {roleLabel}
+                        </span>
+                      )}
+                    </div>
                     <span className="text-muted-foreground truncate text-xs">
                       {user.email}
                     </span>
                   </div>
                 </div>
               </DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <HugeiconsIcon icon={UserCircle02Icon} strokeWidth={2} />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <HugeiconsIcon icon={CreditCardIcon} strokeWidth={2} />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <HugeiconsIcon icon={Notification03Icon} strokeWidth={2} />
-                Notifications
-              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onLogout}>

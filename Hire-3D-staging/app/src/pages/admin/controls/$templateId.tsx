@@ -33,7 +33,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { unwrap } from '@/lib/api-client'
 import { applyApiError, notifyApiError } from '@/lib/api-errors'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowLeft, Save } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link, Navigate, useParams } from 'react-router'
@@ -100,6 +100,7 @@ export default function ControlTemplateDetailPage() {
   const { can } = useAuth()
   const [template, setTemplate] = useState<ControlTemplateRead | null>(null)
   const [loading, setLoading] = useState(true)
+  const [anchorPreview, setAnchorPreview] = useState(false)
 
   const canEdit = can('controls:manage')
 
@@ -153,12 +154,12 @@ export default function ControlTemplateDetailPage() {
     }
   }
 
-  const handleAnchorSave = async (anchor: CalibrationAnchorCreate) => {
+  const handleAnchorSave = async (anchor: CalibrationAnchorCreate & AnchorFields) => {
     if (!template) return
     try {
       await upsertCalibrationAnchor({
         path: { template_id: template.id },
-        body: anchor
+        body: anchor as CalibrationAnchorCreate
       })
       const refreshed = await getControlTemplate({
         path: { template_id: template.id }
@@ -341,14 +342,36 @@ export default function ControlTemplateDetailPage() {
       </form>
 
       <div className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold tracking-tight">
-          Calibration Anchors
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          Operators reference these anchors when assigning a RAG rating in Phase
-          2. Severity hints (1–5) suggest the default severity weight for a
-          finding at this band.
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold tracking-tight">
+              Calibration Anchors
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              Operators reference these anchors when assigning a RAG rating in Phase
+              2. Severity hints (1–5) suggest the default severity weight for a
+              finding at this band.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setAnchorPreview(p => !p)}
+          >
+            {anchorPreview ? (
+              <>
+                <EyeOff className="mr-1.5 h-3.5 w-3.5" />
+                Edit
+              </>
+            ) : (
+              <>
+                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                Preview
+              </>
+            )}
+          </Button>
+        </div>
         <div className="flex flex-col gap-3">
           {ragLevels.map(level => {
             const anchor = template.calibrationAnchors?.find(
@@ -358,10 +381,16 @@ export default function ControlTemplateDetailPage() {
               <CalibrationAnchorCard
                 key={level}
                 level={level}
-                description={anchor?.description ?? ''}
-                severityHint={anchor?.severityHint ?? null}
+                fields={{
+                  description: (anchor as Record<string, unknown>)?.description as string ?? '',
+                  whatThisMeans: (anchor as Record<string, unknown>)?.whatThisMeans as string ?? '',
+                  evidenceDescriptors: (anchor as Record<string, unknown>)?.evidenceDescriptors as string ?? '',
+                  minimumStandard: (anchor as Record<string, unknown>)?.minimumStandard as string ?? '',
+                  severityHint: anchor?.severityHint ?? null
+                }}
                 disabled={!canEdit}
                 onSave={handleAnchorSave}
+                preview={anchorPreview}
               />
             )
           })}
@@ -371,30 +400,82 @@ export default function ControlTemplateDetailPage() {
   )
 }
 
+type AnchorFields = {
+  description: string
+  whatThisMeans: string
+  evidenceDescriptors: string
+  minimumStandard: string
+  severityHint: number | null
+}
+
 function CalibrationAnchorCard({
   level,
-  description,
-  severityHint,
+  fields,
   disabled,
-  onSave
+  onSave,
+  preview
 }: {
   level: RAGLevel
-  description: string
-  severityHint: number | null
+  fields: AnchorFields
   disabled?: boolean
-  onSave: (anchor: CalibrationAnchorCreate) => Promise<void>
+  onSave: (anchor: CalibrationAnchorCreate & AnchorFields) => Promise<void>
+  preview?: boolean
 }) {
-  const [desc, setDesc] = useState(description)
+  const [desc, setDesc] = useState(fields.description)
+  const [whatThisMeans, setWhatThisMeans] = useState(fields.whatThisMeans)
+  const [evidenceDescriptors, setEvidenceDescriptors] = useState(fields.evidenceDescriptors)
+  const [minimumStandard, setMinimumStandard] = useState(fields.minimumStandard)
   const [hint, setHint] = useState<string>(
-    severityHint != null ? String(severityHint) : ''
+    fields.severityHint != null ? String(fields.severityHint) : ''
   )
   const [saving, setSaving] = useState(false)
-  const dirty = desc !== description || (Number(hint) || null) !== severityHint
+
+  const dirty =
+    desc !== fields.description ||
+    whatThisMeans !== fields.whatThisMeans ||
+    evidenceDescriptors !== fields.evidenceDescriptors ||
+    minimumStandard !== fields.minimumStandard ||
+    (Number(hint) || null) !== fields.severityHint
 
   useEffect(() => {
-    setDesc(description)
-    setHint(severityHint != null ? String(severityHint) : '')
-  }, [description, severityHint])
+    setDesc(fields.description)
+    setWhatThisMeans(fields.whatThisMeans)
+    setEvidenceDescriptors(fields.evidenceDescriptors)
+    setMinimumStandard(fields.minimumStandard)
+    setHint(fields.severityHint != null ? String(fields.severityHint) : '')
+  }, [fields])
+
+  if (preview) {
+    return (
+      <div className={`rounded-xl border p-4 ${RAG_BAND_CLASS[level]}`}>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-bold tracking-wide uppercase">{RAGLevelLabel[level]}</p>
+          {fields.severityHint != null && (
+            <span className="text-xs font-medium opacity-70">Severity: {fields.severityHint}/5</span>
+          )}
+        </div>
+        {desc && <p className="mt-2 text-sm">{desc}</p>}
+        {whatThisMeans && (
+          <div className="mt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-60">What this means</p>
+            <p className="mt-0.5 text-sm">{whatThisMeans}</p>
+          </div>
+        )}
+        {evidenceDescriptors && (
+          <div className="mt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-60">Evidence descriptors</p>
+            <p className="mt-0.5 text-sm">{evidenceDescriptors}</p>
+          </div>
+        )}
+        {minimumStandard && (
+          <div className="mt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-60">Minimum standard</p>
+            <p className="mt-0.5 text-sm">{minimumStandard}</p>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className={`rounded-xl border p-4 ${RAG_BAND_CLASS[level]}`}>
@@ -427,6 +508,9 @@ function CalibrationAnchorCard({
                   await onSave({
                     ragLevel: level,
                     description: desc,
+                    whatThisMeans,
+                    evidenceDescriptors,
+                    minimumStandard,
                     severityHint: hint === '' ? null : Number(hint)
                   })
                 } finally {
@@ -443,10 +527,45 @@ function CalibrationAnchorCard({
         value={desc}
         onChange={e => setDesc(e.target.value)}
         disabled={disabled}
-        rows={3}
+        rows={2}
         className="bg-background mt-3 resize-y"
         placeholder="Describe what evidence patterns earn this rating…"
       />
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div>
+          <Label className="mb-1 text-xs">What this means</Label>
+          <Textarea
+            value={whatThisMeans}
+            onChange={e => setWhatThisMeans(e.target.value)}
+            disabled={disabled}
+            rows={3}
+            className="bg-background resize-y"
+            placeholder="What does this rating mean for the client…"
+          />
+        </div>
+        <div>
+          <Label className="mb-1 text-xs">Evidence descriptors</Label>
+          <Textarea
+            value={evidenceDescriptors}
+            onChange={e => setEvidenceDescriptors(e.target.value)}
+            disabled={disabled}
+            rows={3}
+            className="bg-background resize-y"
+            placeholder="What evidence was observed at this level…"
+          />
+        </div>
+        <div>
+          <Label className="mb-1 text-xs">Minimum standard</Label>
+          <Textarea
+            value={minimumStandard}
+            onChange={e => setMinimumStandard(e.target.value)}
+            disabled={disabled}
+            rows={3}
+            className="bg-background resize-y"
+            placeholder="Minimum requirement to achieve this rating…"
+          />
+        </div>
+      </div>
     </div>
   )
 }

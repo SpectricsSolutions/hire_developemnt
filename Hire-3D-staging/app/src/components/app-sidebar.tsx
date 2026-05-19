@@ -111,7 +111,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           user={{
             name: user?.name ?? '',
             email: user?.email ?? '',
-            avatar: ''
+            avatar: '',
+            role: user?.role ?? null
           }}
           onLogout={logout}
         />

@@ -26,7 +26,7 @@ import {
 import { useAuth } from '@/contexts/auth-context'
 import { unwrap } from '@/lib/api-client'
 import { notifyApiError } from '@/lib/api-errors'
-import { CheckCircle2, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -57,6 +57,7 @@ export function AuditPanel({
   const [gates, setGates] = useState<GateReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [startConfirmOpen, setStartConfirmOpen] = useState(false)
 
   const reload = async () => {
     setLoading(true)
@@ -168,25 +169,84 @@ export function AuditPanel({
           {!loading &&
             phase === AssessmentPhase.NOT_STARTED &&
             can('assessments:start') && (
-              <Button
-                disabled={busy || preStartFailures.length > 0}
-                onClick={() =>
-                  handleAction('Phase 1 started', () =>
-                    startAssessment({
-                      path: { engagement_id: engagementId }
-                    })
-                  )
-                }
-                title={
-                  preStartFailures.length > 0
-                    ? preStartFailures
-                        .map(g => `${GateLabel[g.gate]}: ${g.reason}`)
-                        .join('\n')
-                    : undefined
-                }
-              >
-                Start Phase 1
-              </Button>
+              <>
+                <Button
+                  disabled={busy || preStartFailures.length > 0}
+                  onClick={() => setStartConfirmOpen(true)}
+                  title={
+                    preStartFailures.length > 0
+                      ? preStartFailures
+                          .map(g => `${GateLabel[g.gate]}: ${g.reason}`)
+                          .join('\n')
+                      : undefined
+                  }
+                >
+                  Schedule Audit
+                </Button>
+                {startConfirmOpen && (
+                  <Dialog open onOpenChange={setStartConfirmOpen}>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-amber-500" />
+                          Confirm: Start Phase 1
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="flex flex-col gap-3 text-sm">
+                        <p>
+                          Starting Phase 1 will create the audit session and
+                          auto-generate evidence rows for all active controls.
+                          This action is for <strong>Admin use only</strong> and
+                          cannot be undone without cancelling the assessment.
+                        </p>
+                        {gates && (
+                          <div className="bg-muted/40 rounded-lg border p-3">
+                            <p className="text-muted-foreground mb-2 text-xs font-semibold uppercase">
+                              Gate status
+                            </p>
+                            {gates.gates
+                              .filter(g => PRE_START_GATES.includes(g.gate))
+                              .map(g => (
+                                <div
+                                  key={g.gate}
+                                  className="flex items-center gap-2 text-xs"
+                                >
+                                  {g.passed ? (
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                                  ) : (
+                                    <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                                  )}
+                                  {GateLabel[g.gate]}
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => setStartConfirmOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          disabled={busy}
+                          onClick={() => {
+                            setStartConfirmOpen(false)
+                            void handleAction('Phase 1 started', () =>
+                              startAssessment({
+                                path: { engagement_id: engagementId }
+                              })
+                            )
+                          }}
+                        >
+                          Confirm — Start Phase 1
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </>
             )}
 
           {!loading &&

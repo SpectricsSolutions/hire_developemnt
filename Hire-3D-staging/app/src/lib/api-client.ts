@@ -1,7 +1,7 @@
 import { client } from '@/client/client.gen'
 
 client.setConfig({
-  baseURL: import.meta.env.DEV ? 'http://localhost:8000' : '',
+  baseURL: import.meta.env.DEV ? 'http://localhost:8080' : '',
   withCredentials: true
 })
 

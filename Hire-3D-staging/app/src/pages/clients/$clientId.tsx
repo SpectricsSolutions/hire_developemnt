@@ -3,11 +3,12 @@ import {
   deleteClient,
   deleteEngagement,
   getClient,
+  getEngagementAssessment,
   listEngagements,
   listUsers,
   updateClient
 } from '@/client/sdk.gen'
-import type { ClientRead, EngagementRead, UserRead } from '@/client/types.gen'
+import type { AssessmentRead, ClientRead, EngagementRead, UserRead } from '@/client/types.gen'
 import { AuditPanel } from '@/components/audit-panel'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
@@ -181,6 +182,7 @@ export default function ClientDetailPage() {
 
   const [client, setClient] = useState<ClientRead | null>(null)
   const [engagements, setEngagements] = useState<EngagementRead[]>([])
+  const [assessmentMap, setAssessmentMap] = useState<Record<string, AssessmentRead | null>>({})
   const [operators, setOperators] = useState<UserRead[]>([])
   const [loading, setLoading] = useState(true)
   const [engagementDialogOpen, setEngagementDialogOpen] = useState(false)
@@ -237,34 +239,39 @@ export default function ClientDetailPage() {
   useEffect(() => {
     if (!clientId) return
 
-    const requests: Promise<unknown>[] = [
-      getClient({ path: { client_id: clientId } }),
-      listEngagements({ path: { client_id: clientId } })
-    ]
-    if (canListUsers) requests.push(listUsers())
+    const clientReq = getClient({ path: { client_id: clientId } })
+      .then(r => unwrap<{ data: ClientRead }>(r).data)
+    const engagementsReq = listEngagements({ path: { client_id: clientId } })
+      .then(r => unwrap<{ data: EngagementRead[] }>(r).data)
+      .catch(() => [] as EngagementRead[])
+    const usersReq = canListUsers
+      ? listUsers().then(r => unwrap<{ data: UserRead[] }>(r).data).catch(() => [] as UserRead[])
+      : Promise.resolve([] as UserRead[])
 
-    Promise.all(requests)
-      .then(([clientRes, engagementsRes, usersRes]) => {
-        const { data: c } = unwrap<{ data: ClientRead }>(clientRes as never)
-        const { data: e } = unwrap<{ data: EngagementRead[] }>(
-          engagementsRes as never
-        )
+    Promise.all([clientReq, engagementsReq, usersReq])
+      .then(([c, e, users]) => {
         setClient(c)
         setEngagements(e)
         setNotes(c.internalNotes ?? '')
-
-        if (canListUsers && usersRes) {
-          const { data: users } = unwrap<{ data: UserRead[] }>(
-            usersRes as never
-          )
-          setOperators(users.filter(u => u.role === 'OPERATOR'))
-        }
-
+        setOperators(users.filter(u => u.role === 'OPERATOR'))
         clientForm.reset(buildFormValues(c))
+
+        // Load assessment phase for each engagement (determines which button to show)
+        Promise.all(
+          e.map(eng =>
+            getEngagementAssessment({ path: { engagement_id: eng.id as string } })
+              .then(r => ({ id: eng.id as string, data: unwrap<{ data: AssessmentRead | null }>(r).data }))
+              .catch(() => ({ id: eng.id as string, data: null }))
+          )
+        ).then(results => {
+          const map: Record<string, AssessmentRead | null> = {}
+          results.forEach(r => { map[r.id] = r.data })
+          setAssessmentMap(map)
+        })
       })
       .catch(err => notifyApiError(err, 'Failed to load client'))
       .finally(() => setLoading(false))
-  }, [clientId, canListUsers, clientForm])
+  }, [clientId, canListUsers])
 
   if (!can('clients:read')) return <Navigate to={ROUTES.HOME} replace />
 
@@ -931,6 +938,7 @@ export default function ClientDetailPage() {
                   <EngagementCard
                     key={e.id as string}
                     engagement={e}
+                    assessment={assessmentMap[e.id as string] ?? null}
                     canViewAudit={can('assessments:read')}
                     onDelete={
                       canDeleteEngagement
@@ -995,14 +1003,31 @@ function ReadField({ label, value }: { label: string; value?: string | null }) {
 
 function EngagementCard({
   engagement: e,
+  assessment,
   canViewAudit,
   onDelete
 }: {
   engagement: EngagementRead
+  assessment: AssessmentRead | null
   canViewAudit: boolean
   onDelete?: () => void
 }) {
   const [auditOpen, setAuditOpen] = useState(false)
+
+  // Derive phase from assessment timestamps (mirrors backend derivePhase logic)
+  const phase = (() => {
+    if (!assessment) return 'NOT_STARTED'
+    if ((assessment as Record<string, unknown>).cancelledAt) return 'CANCELLED'
+    if ((assessment as Record<string, unknown>).phase2SubmittedAt) return 'PHASE_2_SUBMITTED'
+    if ((assessment as Record<string, unknown>).phase1ClosedAt) return 'PHASE_1_CLOSED'
+    if ((assessment as Record<string, unknown>).phase1StartedAt) return 'PHASE_1_IN_PROGRESS'
+    return 'NOT_STARTED'
+  })()
+
+  // Fall back to assessment.phase if available (backend already derives it)
+  const derivedPhase = (assessment as Record<string, unknown> | null)?.phase as string ?? phase
+
+  const phase1Active = derivedPhase === 'PHASE_1_IN_PROGRESS'
 
   return (
     <div className="rounded-xl border p-4">
@@ -1055,21 +1080,21 @@ function EngagementCard({
       {canViewAudit && (
         <>
           <div className="mt-3 flex justify-end gap-2">
-            {/* T3.04 — Resume Phase 1 button */}
-            {e.auditStatus === AuditStatus.SCHEDULED && (
+            {/* Only show "Open Phase 1" when Phase 1 is actually in progress */}
+            {phase1Active && (
               <Button variant="default" size="sm" asChild>
                 <Link to={ROUTES.PHASE1_WORKSPACE(e.id as string)}>
-                  Resume Phase 1
+                  Open Phase 1
                 </Link>
               </Button>
             )}
             <Button
-              variant="outline"
+              variant={phase1Active ? 'outline' : 'default'}
               size="sm"
               onClick={() => setAuditOpen(true)}
             >
               <ShieldCheck className="mr-1.5 h-3.5 w-3.5" />
-              Audit &amp; Gates
+              {phase1Active ? 'Audit & Gates' : 'Schedule Audit'}
             </Button>
           </div>
           <AuditPanel

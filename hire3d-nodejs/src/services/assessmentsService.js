@@ -66,6 +66,15 @@ async function gateReport(engagementId) {
   };
 }
 
+async function scheduleAudit(engagementId) {
+  const engagement = await getEngagement(engagementId);
+  const assessment = await getForEngagement(engagementId);
+  const results = runGates(START_GATES, { engagement, assessment: null });
+  const gates = results.map(([gate, passed, reason]) => ({ gate, passed, reason }));
+  const allPassed = gates.every(g => g.passed);
+  return { engagementId, gates, ready: allPassed };
+}
+
 async function startAssessment(engagementId, actorId) {
   const engagement = await getEngagement(engagementId);
   const existing = await getForEngagement(engagementId);
@@ -184,6 +193,7 @@ module.exports = {
   gateReport,
   getForEngagement,
   getById,
+  scheduleAudit,
   startAssessment,
   closePhase1,
   submitPhase2,

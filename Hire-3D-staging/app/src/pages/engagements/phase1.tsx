@@ -12,7 +12,7 @@ import {
 import { notifyApiError } from '@/lib/api-errors'
 import { ArrowLeft, CheckCircle2, Loader2, AlertCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router'
+import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { ROUTES } from '@/constants/app'
@@ -40,9 +40,11 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
 export default function Phase1WorkspacePage() {
   const { engagementId } = useParams<{ engagementId: string }>()
   const { can } = useAuth()
+  const navigate = useNavigate()
   const [workspace, setWorkspace] = useState<P1Workspace | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeControlId, setActiveControlId] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
   const canRead = can('assessments:read')
 
@@ -165,6 +167,13 @@ export default function Phase1WorkspacePage() {
     }
   }
 
+  function handleBack() {
+    if (hasPendingSaves) {
+      if (!window.confirm('You have unsaved changes. Leave anyway?')) return
+    }
+    navigate(-1)
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
   if (!canRead) return <Navigate to={ROUTES.HOME} replace />
 
@@ -177,9 +186,14 @@ export default function Phase1WorkspacePage() {
       <header className="bg-slate-900 text-white px-6 py-3 shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
-            <Link to={ROUTES.HOME} className="text-slate-400 hover:text-white transition-colors" aria-label="Back">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="text-slate-400 hover:text-white transition-colors"
+              aria-label="Back"
+            >
               <ArrowLeft size={16} />
-            </Link>
+            </button>
             <div>
               <p className="text-xs text-slate-400">Phase 1 — Evidence Capture</p>
               <p className="font-semibold text-sm">{workspace?.product ?? 'Loading…'}</p>
@@ -210,7 +224,12 @@ export default function Phase1WorkspacePage() {
 
       {/* ── Body ─────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        {workspace && <Phase1Sidebar controls={workspace.controls} activeControlId={activeControlId} />}
+        <Phase1Sidebar
+          controls={workspace?.controls ?? []}
+          activeControlId={activeControlId}
+          open={sidebarOpen}
+          onToggle={() => setSidebarOpen(o => !o)}
+        />
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 bg-slate-50">
           {loading && (

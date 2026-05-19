@@ -100,6 +100,40 @@ async function updateTemplate(templateId, data) {
   return updated;
 }
 
+async function patchTemplate(templateId, data) {
+  const template = await getTemplate(templateId);
+  const before = templateSnapshot(template);
+
+  const { calibrationAnchors, ...templateData } = data;
+
+  const t = await sequelize.transaction();
+  try {
+    await template.update({ ...templateData, version: template.version + 1 }, { transaction: t });
+
+    if (calibrationAnchors !== null && calibrationAnchors !== undefined) {
+      await CalibrationAnchor.destroy({ where: { controlTemplateId: templateId }, transaction: t });
+      if (calibrationAnchors.length > 0) {
+        await CalibrationAnchor.bulkCreate(
+          calibrationAnchors.map((a) => ({ ...a, controlTemplateId: templateId })),
+          { transaction: t },
+        );
+      }
+    }
+
+    await t.commit();
+  } catch (err) {
+    await t.rollback();
+    throw err;
+  }
+
+  const updated = await ControlTemplate.findByPk(templateId, {
+    include: [{ model: CalibrationAnchor, as: 'calibrationAnchors' }],
+  });
+
+  await logUpdate({ type: 'control_template', id: templateId }, before, data);
+  return updated;
+}
+
 async function deleteTemplate(templateId) {
   const template = await getTemplate(templateId);
   const before = templateSnapshot(template);

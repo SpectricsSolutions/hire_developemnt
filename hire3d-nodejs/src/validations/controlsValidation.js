@@ -9,6 +9,9 @@ const RAG_LEVELS = ['RED', 'AMBER_RED', 'AMBER', 'GREEN_AMBER', 'GREEN'];
 const calibrationAnchorSchema = Joi.object({
   ragLevel: Joi.string().valid(...RAG_LEVELS).required(),
   description: Joi.string().min(1).required(),
+  whatThisMeans: Joi.string().allow(null, '').default(null),
+  evidenceDescriptors: Joi.string().allow(null, '').default(null),
+  minimumStandard: Joi.string().allow(null, '').default(null),
   severityHint: Joi.number().integer().min(1).max(5).allow(null).default(null),
 });
 
@@ -46,12 +49,28 @@ const updateControlTemplateSchema = Joi.object({
   calibrationAnchors: Joi.array().items(calibrationAnchorSchema).allow(null).default(null),
 });
 
+const patchControlTemplateSchema = Joi.object({
+  code: Joi.string().min(1).max(10),
+  title: Joi.string().min(1).max(255),
+  whatTesting: Joi.string().min(1),
+  whyMatters: Joi.string().min(1),
+  primaryQuestion: Joi.string().min(1),
+  evidencePrompts: Joi.array().items(Joi.string()),
+  lookingFor: Joi.array().items(Joi.string()),
+  sampling: Joi.string().allow(null, ''),
+  ifPartial: Joi.array().items(Joi.string()),
+  sortOrder: Joi.number().integer(),
+  isActive: Joi.boolean(),
+  calibrationAnchors: Joi.array().items(calibrationAnchorSchema).allow(null),
+});
+
 const upsertAnchorSchema = calibrationAnchorSchema;
 const updateAnchorSchema = calibrationAnchorSchema;
 
 module.exports = {
   createControlTemplateSchema,
   updateControlTemplateSchema,
+  patchControlTemplateSchema,
   upsertAnchorSchema,
   updateAnchorSchema,
 };

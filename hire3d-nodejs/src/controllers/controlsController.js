@@ -28,6 +28,11 @@ async function updateControlTemplate(req, res) {
   return success(res, template.toJSON(), 'Control template updated successfully.');
 }
 
+async function patchControlTemplate(req, res) {
+  const template = await controlsService.patchTemplate(req.params.templateId, req.body);
+  return success(res, template.toJSON(), 'Control template updated successfully.');
+}
+
 async function deleteControlTemplate(req, res) {
   await controlsService.deleteTemplate(req.params.templateId);
   return noData(res, 'Control template deleted successfully.');
@@ -53,6 +58,7 @@ module.exports = {
   getControlTemplate,
   createControlTemplate,
   updateControlTemplate,
+  patchControlTemplate,
   deleteControlTemplate,
   upsertCalibrationAnchor,
   updateCalibrationAnchor,

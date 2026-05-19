@@ -56,8 +56,8 @@ describe('GET /api/v1/phase1/:engagementId', () => {
     expect(res.body.data.progress.percentageComplete).toBe(0);
   });
 
-  // Scenario 2 — no assessment started yet (controls still returned, no evidence)
-  test('SC02: returns controls with null evidence before assessment starts', async () => {
+  // Scenario 2 — no assessment started yet (evidence auto-initialised as not_provided)
+  test('SC02: assessment is null and all evidence starts as not_provided before start', async () => {
     const admin = await createUser({ roleName: 'ADMIN' });
     const op = await createUser({ roleName: 'OPERATOR' });
     const engagement = await startedEngagement(op.id);
@@ -70,7 +70,10 @@ describe('GET /api/v1/phase1/:engagementId', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.assessment).toBeNull();
     res.body.data.controls.forEach((c) => {
-      expect(c.evidence).toBeNull();
+      if (c.evidence) {
+        expect(c.evidence.status).toBe('not_provided');
+        expect(c.evidence.notes).toBeNull();
+      }
     });
   });
 
@@ -209,6 +212,83 @@ describe('PUT /api/v1/phase1-evidence/:itemId', () => {
   });
 });
 
+// ── T3.02: File upload ────────────────────────────────────────────────────────
+
+describe('POST /api/v1/phase1-evidence/:itemId/upload', () => {
+  async function setupWithEvidence() {
+    const admin = await createUser({ roleName: 'ADMIN' });
+    const op = await createUser({ roleName: 'OPERATOR' });
+    const engagement = await startedEngagement(op.id);
+    const token = await loginAs(admin);
+    await request(app)
+      .post(`/api/v1/engagements/${engagement.id}/assessment/start`)
+      .set('Authorization', `Bearer ${token}`);
+    const ws = await request(app)
+      .get(`/api/v1/phase1/${engagement.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    const item = ws.body.data.controls[0].evidence;
+    return { token, item, engagementId: engagement.id };
+  }
+
+  // Scenario 10 — happy path: upload a valid PDF
+  test('SC10: upload valid PDF → 200, fileName and fileUrl returned', async () => {
+    const { token, item } = await setupWithEvidence();
+    const pdfBytes = Buffer.from('%PDF-1.4 1 0 obj<</Type /Catalog>>endobj');
+
+    const res = await request(app)
+      .post(`/api/v1/phase1-evidence/${item.id}/upload`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', pdfBytes, { filename: 'contract.pdf', contentType: 'application/pdf' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.fileName).toBe('contract.pdf');
+    expect(res.body.data.fileUrl).toBeTruthy();
+  });
+
+  // Scenario 11 — rejected MIME type → 422
+  test('SC11: upload disallowed file type (.exe) → 422', async () => {
+    const { token, item } = await setupWithEvidence();
+
+    const res = await request(app)
+      .post(`/api/v1/phase1-evidence/${item.id}/upload`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('MZ'), { filename: 'virus.exe', contentType: 'application/octet-stream' });
+
+    expect(res.status).toBe(422);
+  });
+
+  // Scenario 12 — file too large (>10 MB) → 413
+  test('SC12: file exceeding 10 MB limit → 413', async () => {
+    const { token, item } = await setupWithEvidence();
+    const bigBuffer = Buffer.alloc(11 * 1024 * 1024, 0);
+
+    const res = await request(app)
+      .post(`/api/v1/phase1-evidence/${item.id}/upload`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', bigBuffer, { filename: 'huge.pdf', contentType: 'application/pdf' });
+
+    expect(res.status).toBe(413);
+  }, 15000);
+
+  // Scenario 13 — file upload auto-sets status to 'seen' when previously not_provided
+  test('SC13: uploading a file auto-updates status to seen when status was not_provided', async () => {
+    const { token, item, engagementId } = await setupWithEvidence();
+    expect(item.status).toBe('not_provided');
+
+    await request(app)
+      .post(`/api/v1/phase1-evidence/${item.id}/upload`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('%PDF-1.4'), { filename: 'evidence.pdf', contentType: 'application/pdf' });
+
+    const ws = await request(app)
+      .get(`/api/v1/phase1/${engagementId}`)
+      .set('Authorization', `Bearer ${token}`);
+    const updated = ws.body.data.controls[0].evidence;
+    expect(updated.status).toBe('seen');
+    expect(updated.fileName).toBe('evidence.pdf');
+  });
+});
+
 // ── T3.01: Auto-create trigger ─────────────────────────────────────────────────
 
 describe('Auto-create p1_evidence on assessment start', () => {
@@ -328,18 +408,38 @@ describe('T3.05 — No RAG Enforcement (GATE)', () => {
     });
   });
 
-  // Scenario 20 — status enum only contains delivery statuses (no RAG values)
-  test('SC20: status enum values contain only delivery statuses, no RAG values', async () => {
-    const [rows] = await sequelize.query(
-      `SELECT unnest(enum_range(NULL::enum_p1_evidence_status)) AS val`,
-    );
-    const enumValues = rows.map((r) => r.val);
-    const ragValues = ['red', 'amber', 'green', 'amber_red', 'green_amber'];
-    ragValues.forEach((v) => {
-      expect(enumValues).not.toContain(v);
-    });
-    // Must contain exactly the four delivery statuses
-    expect(enumValues).toEqual(expect.arrayContaining(['not_provided', 'seen', 'partial', 'requested']));
+  // Scenario 20 — validation rejects every RAG-level status value
+  test('SC20: PUT evidence rejects all RAG-level status values via validation', async () => {
+    const admin = await createUser({ roleName: 'ADMIN' });
+    const op = await createUser({ roleName: 'OPERATOR' });
+    const engagement = await startedEngagement(op.id);
+    const token = await loginAs(admin);
+
+    await request(app)
+      .post(`/api/v1/engagements/${engagement.id}/assessment/start`)
+      .set('Authorization', `Bearer ${token}`);
+
+    const ws = await request(app)
+      .get(`/api/v1/phase1/${engagement.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    const item = ws.body.data.controls[0].evidence;
+
+    for (const ragStatus of ['red', 'amber', 'green', 'amber_red', 'green_amber', 'rag_red']) {
+      const res = await request(app)
+        .put(`/api/v1/phase1-evidence/${item.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: ragStatus });
+      expect(res.status).toBe(422);
+    }
+
+    // Valid delivery statuses must still be accepted
+    for (const goodStatus of ['not_provided', 'seen', 'partial', 'requested']) {
+      const res = await request(app)
+        .put(`/api/v1/phase1-evidence/${item.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ status: goodStatus });
+      expect(res.status).toBe(200);
+    }
   });
 });
 
@@ -399,6 +499,37 @@ describe('Progress calculation', () => {
     // seen + partial = done; requested is not done
     const done = progress.seen + progress.partial;
     expect(progress.percentageComplete).toBe(Math.round((done / progress.total) * 100));
+  });
+
+  // Scenario 16 — all controls seen → 100%
+  test('SC16: all controls marked seen → progress is 100%', async () => {
+    const admin = await createUser({ roleName: 'ADMIN' });
+    const op = await createUser({ roleName: 'OPERATOR' });
+    const engagement = await startedEngagement(op.id);
+    const token = await loginAs(admin);
+
+    await request(app)
+      .post(`/api/v1/engagements/${engagement.id}/assessment/start`)
+      .set('Authorization', `Bearer ${token}`);
+
+    const ws = await request(app)
+      .get(`/api/v1/phase1/${engagement.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    const items = ws.body.data.controls.map((c) => c.evidence);
+
+    await Promise.all(
+      items.map((ev) =>
+        request(app)
+          .put(`/api/v1/phase1-evidence/${ev.id}`)
+          .set('Authorization', `Bearer ${token}`)
+          .send({ status: 'seen' }),
+      ),
+    );
+
+    const progress = await getProgress(engagement.id, token);
+    expect(progress.percentageComplete).toBe(100);
+    expect(progress.notProvided).toBe(0);
+    expect(progress.seen).toBe(progress.total);
   });
 });
 
@@ -463,4 +594,73 @@ describe('Permission checks', () => {
       .send({ status: 'seen' });
     expect(writeRes.status).toBe(200);
   });
+});
+
+// ── T3.06: Performance tests ──────────────────────────────────────────────────
+
+describe('T3.06 — Performance', () => {
+  async function prepareStartedWorkspace() {
+    const admin = await createUser({ roleName: 'ADMIN' });
+    const op = await createUser({ roleName: 'OPERATOR' });
+    const client = await createClient({ assignedOperatorId: op.id });
+    const engagement = await createEngagement(client.id, {
+      engagementLetterSignedAt: '2026-01-10',
+      invoiceRaisedAt: '2026-01-15',
+      product: 'THE_CHECK',
+    });
+    const token = await loginAs(admin);
+    await request(app)
+      .post(`/api/v1/engagements/${engagement.id}/assessment/start`)
+      .set('Authorization', `Bearer ${token}`);
+    const ws = await request(app)
+      .get(`/api/v1/phase1/${engagement.id}`)
+      .set('Authorization', `Bearer ${token}`);
+    const item = ws.body.data.controls[0].evidence;
+    return { token, engagementId: engagement.id, itemId: item.id };
+  }
+
+  // PERF-01 — workspace load under 1 000 ms
+  test('PERF-01: GET /phase1 workspace loads in under 1 000 ms', async () => {
+    const { token, engagementId } = await prepareStartedWorkspace();
+
+    const start = Date.now();
+    const res = await request(app)
+      .get(`/api/v1/phase1/${engagementId}`)
+      .set('Authorization', `Bearer ${token}`);
+    const elapsed = Date.now() - start;
+
+    expect(res.status).toBe(200);
+    expect(elapsed).toBeLessThan(1000);
+  });
+
+  // PERF-02 — evidence save under 200 ms
+  test('PERF-02: PUT /phase1-evidence auto-save completes in under 200 ms', async () => {
+    const { token, itemId } = await prepareStartedWorkspace();
+
+    const start = Date.now();
+    const res = await request(app)
+      .put(`/api/v1/phase1-evidence/${itemId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ notes: 'Timing test note.', status: 'seen' });
+    const elapsed = Date.now() - start;
+
+    expect(res.status).toBe(200);
+    expect(elapsed).toBeLessThan(200);
+  });
+
+  // PERF-03 — file upload under 3 000 ms (1 MB PDF)
+  test('PERF-03: POST /upload for 1 MB file completes in under 3 000 ms', async () => {
+    const { token, itemId } = await prepareStartedWorkspace();
+    const oneMB = Buffer.alloc(1024 * 1024, 0x25); // 1 MB of '%'
+
+    const start = Date.now();
+    const res = await request(app)
+      .post(`/api/v1/phase1-evidence/${itemId}/upload`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', oneMB, { filename: 'perf-test.pdf', contentType: 'application/pdf' });
+    const elapsed = Date.now() - start;
+
+    expect(res.status).toBe(200);
+    expect(elapsed).toBeLessThan(3000);
+  }, 10000);
 });

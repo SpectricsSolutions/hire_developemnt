@@ -9,6 +9,7 @@ const validate = require('../middleware/validate');
 const {
   createControlTemplateSchema,
   updateControlTemplateSchema,
+  patchControlTemplateSchema,
   upsertAnchorSchema,
   updateAnchorSchema,
 } = require('../validations/controlsValidation');
@@ -18,6 +19,7 @@ router.get('/control-templates', requirePermission('controls:read'), asyncHandle
 router.get('/control-templates/:templateId', requirePermission('controls:read'), asyncHandler(controlsController.getControlTemplate));
 router.post('/control-templates', requirePermission('controls:manage'), validate(createControlTemplateSchema), asyncHandler(controlsController.createControlTemplate));
 router.put('/control-templates/:templateId', requirePermission('controls:manage'), validate(updateControlTemplateSchema), asyncHandler(controlsController.updateControlTemplate));
+router.patch('/control-templates/:templateId', requirePermission('controls:manage'), validate(patchControlTemplateSchema), asyncHandler(controlsController.patchControlTemplate));
 router.delete('/control-templates/:templateId', requirePermission('controls:manage'), asyncHandler(controlsController.deleteControlTemplate));
 
 // Calibration anchors

@@ -8,6 +8,11 @@ function toRead(assessment) {
   return { ...data, phase: assessmentsService.derivePhase(assessment) };
 }
 
+async function scheduleAudit(req, res) {
+  const report = await assessmentsService.scheduleAudit(req.params.engagementId);
+  return success(res, report, 'Gate check complete.');
+}
+
 async function getEngagementGates(req, res) {
   const report = await assessmentsService.gateReport(req.params.engagementId);
   return success(res, report);
@@ -47,6 +52,7 @@ async function listGateChecks(req, res) {
 }
 
 module.exports = {
+  scheduleAudit,
   getEngagementGates,
   getEngagementAssessment,
   startAssessment,

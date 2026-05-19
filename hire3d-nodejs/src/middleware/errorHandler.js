@@ -50,6 +50,11 @@ function errorHandler(err, req, res, next) {
     return res.status(409).json({ success: false, message: 'Resource already exists.' });
   }
 
+  // Multer file-size exceeded
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ success: false, message: 'File too large. Maximum size is 10 MB.' });
+  }
+
   console.error('Unhandled error:', err);
   return res.status(500).json({ success: false, message: 'Internal server error.' });
 }

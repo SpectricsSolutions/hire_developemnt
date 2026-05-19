@@ -9,6 +9,7 @@ const { requirePermission } = require('../middleware/auth');
 // Engagement-scoped
 router.get('/engagements/:engagementId/gates', requirePermission('assessments:read'), asyncHandler(assessmentsController.getEngagementGates));
 router.get('/engagements/:engagementId/assessment', requirePermission('assessments:read'), asyncHandler(assessmentsController.getEngagementAssessment));
+router.post('/engagements/:engagementId/assessment/schedule', requirePermission('assessments:start'), asyncHandler(assessmentsController.scheduleAudit));
 router.post('/engagements/:engagementId/assessment/start', requirePermission('assessments:start'), asyncHandler(assessmentsController.startAssessment));
 router.get('/engagements/:engagementId/gate-checks', requirePermission('assessments:read'), asyncHandler(assessmentsController.listGateChecks));
 
