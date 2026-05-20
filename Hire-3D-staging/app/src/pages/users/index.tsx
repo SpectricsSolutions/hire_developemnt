@@ -76,6 +76,12 @@ const USER_ROLE_LABEL: Record<string, string> = {
   VIEWER: 'Viewer'
 }
 
+const USER_ROLE_CLASS: Record<string, string> = {
+  ADMIN: 'border-violet-200 bg-violet-50 text-violet-700',
+  OPERATOR: 'border-blue-200 bg-blue-50 text-blue-700',
+  VIEWER: 'border-zinc-200 bg-zinc-100 text-zinc-600'
+}
+
 type UserSortKey = 'name' | 'email' | 'role' | 'status'
 type SortDir = 'asc' | 'desc'
 
@@ -660,25 +666,33 @@ export default function UsersPage() {
                     {u.email}
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={u.role ?? undefined}
-                      disabled={u.id === user?.sub}
-                      /* c8 ignore next */
-                      onValueChange={role =>
-                        role && handleRoleChange(u.id, role)
-                      }
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map(r => (
-                          <SelectItem key={r.id} value={r.name}>
-                            {USER_ROLE_LABEL[r.name] ?? r.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {u.id === user?.sub ? (
+                      <Badge
+                        variant="outline"
+                        className={USER_ROLE_CLASS[u.role ?? ''] ?? 'border-zinc-200 bg-zinc-100 text-zinc-600'}
+                      >
+                        {USER_ROLE_LABEL[u.role ?? ''] ?? u.role}
+                      </Badge>
+                    ) : (
+                      <Select
+                        value={u.role ?? undefined}
+                        /* c8 ignore next */
+                        onValueChange={role =>
+                          role && handleRoleChange(u.id, role)
+                        }
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roles.map(r => (
+                            <SelectItem key={r.id} value={r.name}>
+                              {USER_ROLE_LABEL[r.name] ?? r.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge

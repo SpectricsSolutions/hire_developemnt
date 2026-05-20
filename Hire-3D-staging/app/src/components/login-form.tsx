@@ -73,7 +73,8 @@ export function LoginForm({
         credentialsForm.setError,
         'Invalid email or password',
         {
-          401: 'Invalid email or password'
+          401: 'Invalid email or password',
+          429: 'Too many sign-in attempts. Please wait a moment before trying again.'
         }
       )
     }
@@ -158,6 +159,11 @@ export function LoginForm({
         <CardContent>
           <form onSubmit={credentialsForm.handleSubmit(onCredentialsSubmit)}>
             <FieldGroup>
+              {credentialsForm.formState.errors.root && (
+                <p className="text-destructive rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm">
+                  {credentialsForm.formState.errors.root.message}
+                </p>
+              )}
               <Field>
                 <FieldLabel htmlFor="email" required>
                   Email

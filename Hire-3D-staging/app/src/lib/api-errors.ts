@@ -52,7 +52,8 @@ export function notifyApiError(
   toast.error(apiErrorMessage(err, fallback, overrides))
 }
 
-// Form variant: 422 → react-hook-form field errors; everything else → toast.
+// Form variant: 422 → react-hook-form field errors; overridden status codes →
+// root form error (inline); everything else → toast.
 export function applyApiError<T extends FieldValues>(
   err: unknown,
   setError: UseFormSetError<T>,
@@ -63,6 +64,10 @@ export function applyApiError<T extends FieldValues>(
     for (const [field, message] of Object.entries(err.errors)) {
       setError(field as Path<T>, { type: 'server', message })
     }
+    return
+  }
+  if (err instanceof ApiError && err.status in overrides) {
+    setError('root' as Path<T>, { type: 'server', message: overrides[err.status] as string })
     return
   }
   notifyApiError(err, fallback, overrides)

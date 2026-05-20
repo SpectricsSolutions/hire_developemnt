@@ -1036,6 +1036,11 @@ function EngagementCard({
           <p className="font-semibold">
             {ProductLabel[e.product as ProductType]}
           </p>
+          {(e as Record<string, unknown>).engagementReference && (
+            <p className="font-mono text-xs text-zinc-500">
+              {String((e as Record<string, unknown>).engagementReference)}
+            </p>
+          )}
           <p className="text-muted-foreground text-xs">
             {formatDate(e.engagementDate as string)}
           </p>

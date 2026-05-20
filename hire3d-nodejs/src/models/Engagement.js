@@ -8,6 +8,7 @@ const Engagement = sequelize.define(
   {
     id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
     clientId: { type: DataTypes.UUID, allowNull: false },
+    engagementReference: { type: DataTypes.STRING(20), allowNull: true, unique: true },
     product: { type: DataTypes.STRING(50), allowNull: false },
     engagementDate: { type: DataTypes.DATEONLY, allowNull: false },
     feeCharged: {
